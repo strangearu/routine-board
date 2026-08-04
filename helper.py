@@ -1,0 +1,96 @@
+# -*- coding: utf-8 -*-
+"""ルーティンボード 窓口ヘルパー（127.0.0.1:8758 常駐）
+
+ボード（strangearu.github.io/routine-board）の⚡ツールタブから、
+ローカルツールやClaude窓口をワンタップ起動する。
+スタートアップの「ルーティンボード-helper.lnk」→ pythonw.exe helper.py で常駐。
+（旧まいにちクエストのhelper.pyを2026-08-05に移管。エンドポイント互換）
+
+エンドポイント:
+  GET /ping            → ok（死活確認）
+  GET /ws/<name>?phrase=… → Claude窓口（会話継続 claude -c＋依頼文コピー）
+  GET /launch/<name>   → TARGETS のコマンドを実行
+"""
+import subprocess
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+PROJECTS = r"C:\Users\stran\projects"
+CLAUDE_EXE = r"C:\Users\stran\.local\bin\claude.exe"
+
+# Claude窓口ワークスペース。flags: fanboxはChrome連携あり（下書き保存）、他は--no-chromeで軽量
+WORKSPACES = {
+    "zh":     {"dir": PROJECTS + r"\bilibili-zh",   "title": "bilibili中国語版の窓口", "flags": "--no-chrome"},
+    "video":  {"dir": PROJECTS + r"\vlog-pipeline", "title": "動画の窓口",             "flags": "--no-chrome"},
+    "fanbox": {"dir": PROJECTS + r"\fanbox-ops",    "title": "FANBOXの窓口",           "flags": "--chrome"},
+}
+
+def ws_cmd(name, phrase):
+    w = WORKSPACES[name]
+    fl = w.get("flags", "--no-chrome")
+    ps = ("$host.UI.RawUI.WindowTitle='" + w["title"] + "'; "
+          "Set-Clipboard -Value '" + phrase.replace("'", "''") + "'; "
+          "Write-Host '=== " + w["title"] + " ===' -ForegroundColor Cyan; "
+          "Write-Host '会話が開いたら Ctrl+V → Enter（依頼文はコピー済み）' -ForegroundColor Yellow; "
+          "cd '" + w["dir"] + "'; "
+          "& '" + CLAUDE_EXE + "' -c " + fl + "; "
+          "if ($LASTEXITCODE -ne 0) { & '" + CLAUDE_EXE + "' " + fl + " }")
+    return ["powershell.exe", "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", ps]
+
+TARGETS = {
+    # Claudeデスクトップアプリを起動/前面化（AUMID）
+    "claude":   {"cmd": ["explorer.exe", r"shell:appsFolder\Claude_pzs8sxrjxfjjc!Claude"]},
+    # 各ツールは自前のrun.batが「起動済みなら開くだけ」を面倒みてくれる
+    "retouch":  {"bat": PROJECTS + r"\retouch-studio\run.bat"},
+    "eventkit": {"bat": PROJECTS + r"\event-kit\run.bat"},
+    "tracker":  {"bat": PROJECTS + r"\sns-tracker\run.bat"},
+}
+
+
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, *a):  # 静かに
+        pass
+
+    def _send(self, code, body):
+        self.send_response(code)
+        self.send_header("Access-Control-Allow-Origin", "*")  # ボード(https)からのfetch用
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.end_headers()
+        self.wfile.write(body.encode("utf-8"))
+
+    def do_GET(self):
+        from urllib.parse import urlparse, parse_qs
+        parsed = urlparse(self.path)
+        path = parsed.path.strip("/")
+        if path == "ping":
+            return self._send(200, "ok")
+        if path.startswith("ws/"):
+            name = path.split("/", 1)[1]
+            if name not in WORKSPACES:
+                return self._send(404, "unknown workspace: " + name)
+            phrase = parse_qs(parsed.query).get("phrase", [""])[0]
+            try:
+                subprocess.Popen(ws_cmd(name, phrase or ""),
+                                 creationflags=subprocess.CREATE_NEW_CONSOLE)
+                return self._send(200, "ws " + name)
+            except Exception as e:
+                return self._send(500, "error: " + str(e))
+        if path.startswith("launch/"):
+            name = path.split("/", 1)[1]
+            t = TARGETS.get(name)
+            if not t:
+                return self._send(404, "unknown target: " + name)
+            try:
+                if "bat" in t:
+                    subprocess.Popen(
+                        ["cmd", "/c", "start", "", t["bat"]],
+                        creationflags=subprocess.CREATE_NO_WINDOW)
+                else:
+                    subprocess.Popen(t["cmd"], creationflags=subprocess.CREATE_NO_WINDOW)
+                return self._send(200, "launched " + name)
+            except Exception as e:
+                return self._send(500, "error: " + str(e))
+        return self._send(404, "not found")
+
+
+if __name__ == "__main__":
+    HTTPServer(("127.0.0.1", 8758), Handler).serve_forever()
