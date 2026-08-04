@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1420">
+<title>ルーティンボード</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
+<style>
+  :root{
+    --bg:#0f1420; --card:#1a2233; --card2:#212b40; --line:#2c3a55;
+    --tx:#e8edf7; --tx2:#9fb0cc; --tx3:#67799c;
+    --accent:#8b7cf6; --accent2:#f67cb2;
+    --red:#ff6b7a; --orange:#ffb15e; --green:#5ed6a2;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  body{margin:0; background:var(--bg); color:var(--tx);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;
+    font-size:15px; line-height:1.55; padding-bottom:40px}
+  .wrap{max-width:1060px; margin:0 auto; padding:14px}
+  header{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:6px 2px 12px}
+  h1{font-size:19px; margin:0; letter-spacing:.02em}
+  h1 .sub{font-size:12px; color:var(--tx3); font-weight:normal; margin-left:8px}
+  .badge{font-size:12px; padding:3px 10px; border-radius:99px; background:var(--card2); color:var(--tx2); border:1px solid var(--line)}
+  .badge.warn{color:var(--orange); border-color:var(--orange)}
+  .badge.ok{color:var(--green); border-color:rgba(94,214,162,.4)}
+  #reload{margin-left:auto; background:var(--card2); color:var(--tx2); border:1px solid var(--line);
+    border-radius:10px; padding:6px 12px; font-size:13px; cursor:pointer}
+  .progress{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line);
+    border-radius:14px; padding:10px 14px; margin-bottom:14px}
+  .bar{flex:1; height:10px; background:var(--card2); border-radius:99px; overflow:hidden}
+  .bar i{display:block; height:100%; width:0; border-radius:99px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width .35s}
+  #ptext{font-size:13px; color:var(--tx2); white-space:nowrap}
+  .closing{font-size:13.5px; color:var(--tx2); background:linear-gradient(135deg,rgba(139,124,246,.14),rgba(246,124,178,.10));
+    border:1px solid rgba(139,124,246,.35); border-radius:14px; padding:10px 14px; margin-bottom:14px}
+  .grid{display:grid; grid-template-columns:1fr; gap:14px}
+  @media(min-width:1000px){.grid{grid-template-columns:1.15fr .85fr}}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 16px}
+  .card h2{font-size:14.5px; margin:0 0 10px; color:var(--tx); display:flex; align-items:center; gap:6px}
+  .card h2 .cnt{font-size:11.5px; color:var(--tx3); font-weight:normal}
+  ul.items{list-style:none; margin:0; padding:0}
+  ul.items li{display:flex; align-items:flex-start; gap:10px; padding:9px 6px; border-radius:10px; cursor:pointer}
+  ul.items li:hover{background:rgba(255,255,255,.03)}
+  ul.items li+li{border-top:1px solid rgba(44,58,85,.5)}
+  .cb{flex:none; width:21px; height:21px; margin-top:2px; border:2px solid var(--tx3); border-radius:7px;
+    display:flex; align-items:center; justify-content:center; font-size:13px; color:transparent; transition:.15s}
+  li.done .cb{background:var(--green); border-color:var(--green); color:#0d2b1e}
+  .body{flex:1; min-width:0}
+  .t{font-size:14.5px}
+  li.done .t{color:var(--tx3); text-decoration:line-through}
+  .n{font-size:12px; color:var(--tx3); margin-top:1px}
+  .chips{flex:none; display:flex; gap:4px; align-items:center; margin-top:2px}
+  .chip{font-size:11px; padding:2px 8px; border-radius:99px; background:var(--card2); color:var(--tx2); white-space:nowrap}
+  .chip.due-red{background:rgba(255,107,122,.16); color:var(--red); font-weight:600}
+  .chip.due-orange{background:rgba(255,177,94,.14); color:var(--orange)}
+  .chip.due-ok{background:rgba(94,214,162,.12); color:var(--green)}
+  .chip.src{background:rgba(139,124,246,.15); color:#b9aefc}
+  .star{color:#ffd76e; margin-right:2px}
+  .days{display:flex; gap:3px; margin-top:3px}
+  .day{width:20px; height:20px; border-radius:6px; font-size:11px; display:flex; align-items:center;
+    justify-content:center; background:var(--card2); color:var(--tx3)}
+  .day.on{background:rgba(139,124,246,.25); color:#c9c0ff; font-weight:600}
+  .day.today-hit{outline:2px solid var(--accent2); color:#fff}
+  .sect-note{font-size:12px; color:var(--tx3); padding:4px 6px}
+  details{margin-top:14px}
+  summary{cursor:pointer; font-size:13.5px; color:var(--tx2); padding:8px 4px}
+  table{width:100%; border-collapse:collapse; font-size:12.5px}
+  th,td{text-align:left; padding:7px 8px; border-top:1px solid rgba(44,58,85,.5); vertical-align:top}
+  th{color:var(--tx3); font-weight:normal; white-space:nowrap}
+  td.sch{white-space:nowrap; color:#b9aefc}
+  .todaymark{background:linear-gradient(135deg,rgba(246,124,178,.16),transparent); border-radius:10px}
+  /* passcode gate */
+  #gate{position:fixed; inset:0; background:var(--bg); display:none; align-items:center; justify-content:center; z-index:9}
+  #gate .box{background:var(--card); border:1px solid var(--line); border-radius:18px; padding:28px; width:min(320px,86vw); text-align:center}
+  #gate input{width:100%; margin:14px 0 10px; padding:11px; border-radius:10px; border:1px solid var(--line);
+    background:var(--card2); color:var(--tx); font-size:16px; text-align:center; letter-spacing:.2em}
+  #gate button{width:100%; padding:11px; border:none; border-radius:10px; font-size:15px; cursor:pointer;
+    background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff}
+  #gerr{color:var(--red); font-size:12.5px; min-height:18px; margin-top:8px}
+  #demo-banner{display:none; text-align:center; font-size:12.5px; color:var(--orange);
+    border:1px dashed var(--orange); border-radius:10px; padding:6px; margin-bottom:12px}
+  #loading{text-align:center; color:var(--tx3); padding:60px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📋 ルーティンボード<span class="sub" id="today-label"></span></h1>
+    <span class="badge" id="fresh"></span>
+    <button id="reload" onclick="location.reload()">🔄 更新</button>
+  </header>
+  <div id="demo-banner">⚠️ デモデータを表示中（?demo=1）</div>
+  <div id="loading">読み込み中…</div>
+  <div id="app" style="display:none">
+    <div class="progress"><div class="bar"><i id="pbar"></i></div><span id="ptext"></span></div>
+    <div class="closing" id="closing"></div>
+    <div class="grid">
+      <div>
+        <div class="card"><h2>⏰ 期限あり <span class="cnt" id="c-dl"></span></h2><ul class="items" id="l-dl"></ul></div>
+        <div class="card" style="margin-top:14px"><h2>💡 提案（分析より）<span class="cnt" id="c-sg"></span></h2><ul class="items" id="l-sg"></ul></div>
+        <div class="card" style="margin-top:14px"><h2>📅 今日の予定 ／ 📆 今週枠</h2>
+          <ul class="items" id="l-cal"></ul><div class="sect-note" id="cal-note"></div>
+          <ul class="items" id="l-ts"></ul></div>
+      </div>
+      <div>
+        <div class="card"><h2>🔁 毎日</h2><ul class="items" id="l-daily"></ul></div>
+        <div class="card" style="margin-top:14px"><h2>📆 毎週 <span class="cnt">今日の該当分に印</span></h2><ul class="items" id="l-weekly"></ul></div>
+        <div class="card" style="margin-top:14px"><h2>🗓️ 毎月</h2><ul class="items" id="l-monthly"></ul></div>
+      </div>
+    </div>
+    <details><summary>⚙️ 自動運転中のルーティン（Claudeが自動でやっている分）</summary>
+      <div class="card" style="margin-top:8px"><table id="auto-table"><tbody></tbody></table></div>
+    </details>
+  </div>
+</div>
+<div id="gate"><div class="box">
+  <div style="font-size:34px">🔒</div>
+  <div style="font-size:14px; color:var(--tx2)">ハブと同じパスコードを入力</div>
+  <input id="gpass" type="password" inputmode="numeric" autocomplete="off">
+  <button onclick="submitPass()">ひらく</button>
+  <div id="gerr"></div>
+</div></div>
+<script>
+const WD = ["日","月","火","水","木","金","土"];
+const now = new Date();
+const todayStr = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
+const $ = s => document.querySelector(s);
+document.getElementById("today-label").textContent = (now.getMonth()+1)+"/"+now.getDate()+"（"+WD[now.getDay()]+"）";
+
+function isoWeek(d){const t=new Date(d);t.setHours(0,0,0,0);t.setDate(t.getDate()+3-((t.getDay()+6)%7));
+  const w1=new Date(t.getFullYear(),0,4);
+  return t.getFullYear()+"-W"+String(1+Math.round(((t-w1)/864e5-3+((w1.getDay()+6)%7))/7)).padStart(2,"0");}
+const SCOPES = {d:"d:"+todayStr, w:"w:"+isoWeek(now), m:"m:"+todayStr.slice(0,7), dl:"dl", sg:"sg:"+todayStr, ts:"ts:"+todayStr, cal:"cal:"+todayStr};
+
+let checks = {};
+try{ checks = JSON.parse(localStorage.getItem("rb-checks")||"{}"); }catch(e){}
+const valid = new Set(Object.values(SCOPES));
+for(const k of Object.keys(checks)) if(!valid.has(k)) delete checks[k];
+function saveChecks(){ localStorage.setItem("rb-checks", JSON.stringify(checks)); }
+function isChecked(scope,id){ return !!(checks[scope]&&checks[scope][id]); }
+function toggle(scope,id,li){
+  checks[scope]=checks[scope]||{};
+  if(checks[scope][id]) delete checks[scope][id]; else checks[scope][id]=1;
+  saveChecks(); li.classList.toggle("done"); updateProgress();
+}
+function hash(s){let h=5381;for(let i=0;i<s.length;i++)h=(h*33)^s.charCodeAt(i);return (h>>>0).toString(36);}
+
+let DATA=null;
+const trackable=[]; // {scope,id}
+
+function li(scope,id,html,noteHtml,chipsHtml,extraCls){
+  const el=document.createElement("li");
+  if(extraCls) el.className=extraCls;
+  el.innerHTML='<div class="cb">✓</div><div class="body"><div class="t">'+html+'</div>'+(noteHtml||"")+'</div>'+(chipsHtml||"");
+  if(isChecked(scope,id)) el.classList.add("done");
+  el.addEventListener("click",()=>toggle(scope,id,el));
+  trackable.push({scope,id});
+  return el;
+}
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+
+function dueChip(due){
+  const d=new Date(due+"T00:00:00"); const t=new Date(); t.setHours(0,0,0,0);
+  const days=Math.round((d-t)/864e5);
+  let cls="due-ok", label="残り"+days+"日";
+  if(days<0){cls="due-red";label="⚠️超過"+(-days)+"日";}
+  else if(days===0){cls="due-red";label="きょう！";}
+  else if(days<=2){cls="due-red";}
+  else if(days<=7){cls="due-orange";}
+  const md=(d.getMonth()+1)+"/"+d.getDate();
+  return {chip:'<span class="chips"><span class="chip">〆'+md+'</span><span class="chip '+cls+'">'+label+'</span></span>', days};
+}
+
+function render(data){
+  DATA=data; trackable.length=0;
+  $("#loading").style.display="none"; $("#app").style.display="block";
+  const fresh=$("#fresh");
+  if(data.generated===todayStr){fresh.textContent="✅ 今朝更新";fresh.className="badge ok";}
+  else{const g=new Date(data.generated+"T00:00:00");
+    fresh.textContent="⚠️ "+(g.getMonth()+1)+"/"+g.getDate()+"朝のデータ（今朝の自動更新待ち）";fresh.className="badge warn";}
+  $("#closing").textContent="🧭 "+(data.closing||"");
+
+  const ldl=$("#l-dl"); ldl.innerHTML="";
+  const dls=(data.deadlines||[]).map(x=>({...x,_c:dueChip(x.due)}))
+    .sort((a,b)=>a._c.days-b._c.days||(b.star?1:0)-(a.star?1:0));
+  dls.forEach(x=>{
+    const id=hash(x.title+x.due);
+    ldl.appendChild(li(SCOPES.dl,id,(x.star?'<span class="star">⭐</span>':"")+esc(x.title),
+      x.note?'<div class="n">'+esc(x.note)+'</div>':"",x._c.chip));
+  });
+  $("#c-dl").textContent=dls.length+"件";
+
+  const lsg=$("#l-sg"); lsg.innerHTML="";
+  (data.suggestions||[]).forEach(x=>{
+    const id=hash(x.text);
+    lsg.appendChild(li(SCOPES.sg,id,esc(x.text),"",
+      x.source?'<span class="chips"><span class="chip src">'+esc(x.source)+'</span></span>':""));
+  });
+  $("#c-sg").textContent=(data.suggestions||[]).length+"件";
+
+  const lcal=$("#l-cal"); lcal.innerHTML=""; const cn=$("#cal-note");
+  if((data.calendar||[]).length===0){cn.textContent="📅 予定なし";}
+  else{cn.textContent="";
+    data.calendar.forEach(x=>{
+      const id=hash("cal"+x.title+(x.time||""));
+      lcal.appendChild(li(SCOPES.cal,id,esc(x.title),"",
+        x.time?'<span class="chips"><span class="chip">'+esc(x.time)+'</span></span>':""));});}
+  const lts=$("#l-ts"); lts.innerHTML="";
+  (data.today_slots||[]).forEach(x=>{lts.appendChild(li(SCOPES.ts,hash(x),esc(x),"",""));});
+
+  const ld=$("#l-daily"); ld.innerHTML="";
+  ((data.routines||{}).daily||[]).forEach(x=>{
+    ld.appendChild(li(SCOPES.d,x.id||hash(x.text),esc(x.text),x.note?'<div class="n">'+esc(x.note)+'</div>':"",""));});
+
+  const lw=$("#l-weekly"); lw.innerHTML="";
+  ((data.routines||{}).weekly||[]).forEach(x=>{
+    const daysSet=new Set(x.days||[]);
+    let chips='<div class="days">';
+    for(let i=0;i<7;i++){
+      const hit=daysSet.has(i);
+      chips+='<span class="day'+(hit?" on":"")+(hit&&i===now.getDay()?" today-hit":"")+'">'+WD[i]+"</span>";}
+    chips+="</div>";
+    if((x.days||[]).length===0) chips='<div class="days"><span class="chip">随時</span></div>';
+    const isToday=daysSet.has(now.getDay());
+    const el=li(SCOPES.w,x.id||hash(x.text),(x.time?'<span class="chip" style="margin-right:6px">'+esc(x.time)+"</span>":"")+esc(x.text),
+      (x.note?'<div class="n">'+esc(x.note)+'</div>':"")+chips,"",isToday?"todaymark":"");
+    lw.appendChild(el);});
+
+  const lm=$("#l-monthly"); lm.innerHTML="";
+  ((data.routines||{}).monthly||[]).forEach(x=>{
+    const isToday=x.day===now.getDate();
+    lm.appendChild(li(SCOPES.m,x.id||hash(x.text),esc(x.text),
+      x.note?'<div class="n">'+esc(x.note)+'</div>':"",
+      '<span class="chips"><span class="chip'+(isToday?" due-red":"")+'">'+(x.day?("毎月"+x.day+"日"):"月内")+"</span></span>",
+      isToday?"todaymark":""));});
+
+  const tb=$("#auto-table tbody"); tb.innerHTML="";
+  (data.auto_systems||[]).forEach(x=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML="<td class='sch'>"+esc(x.schedule)+"</td><th>"+esc(x.name)+"</th><td>"+esc(x.desc)+"</td>";
+    tb.appendChild(tr);});
+
+  // prune dl checks for items no longer present
+  if(checks[SCOPES.dl]){const ids=new Set(dls.map(x=>hash(x.title+x.due)));
+    for(const k of Object.keys(checks[SCOPES.dl])) if(!ids.has(k)) delete checks[SCOPES.dl][k];
+    saveChecks();}
+  updateProgress();
+}
+
+function updateProgress(){
+  let done=0;
+  trackable.forEach(t=>{if(isChecked(t.scope,t.id))done++;});
+  const total=trackable.length;
+  $("#pbar").style.width=(total?Math.round(done/total*100):0)+"%";
+  $("#ptext").textContent="きょうの消化 "+done+" / "+total;
+}
+
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function decrypt(enc,pass){
+  const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]);
+  const key=await crypto.subtle.deriveKey({name:"PBKDF2",salt:b64(enc.salt),iterations:enc.iter,hash:"SHA-256"},
+    km,{name:"AES-GCM",length:256},false,["decrypt"]);
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64(enc.iv)},key,b64(enc.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+let ENC=null;
+async function tryPass(pass){
+  try{const data=await decrypt(ENC,pass);
+    localStorage.setItem("hub-pass",pass);
+    $("#gate").style.display="none"; render(data); return true;
+  }catch(e){return false;}
+}
+async function submitPass(){
+  const p=$("#gpass").value.trim();
+  if(!p) return;
+  if(!await tryPass(p)){$("#gerr").textContent="パスコードが違うようです";$("#gpass").value="";}
+}
+$("#gpass")&&$("#gpass").addEventListener("keydown",e=>{if(e.key==="Enter")submitPass();});
+
+const DEMO={generated:todayStr,closing:"デモ表示です。実データはパスコードで復号されます。",
+  deadlines:[{title:"サンプル入稿",due:todayStr,star:true,note:"これはデモです"},{title:"サンプル申請",due:"2099-01-01"}],
+  suggestions:[{text:"サンプル提案（朝7時に写真1枚投稿）",source:"SNS戦略"}],
+  calendar:[],today_slots:["サンプル: 今日は編集着手を推奨"],
+  routines:{daily:[{id:"d1",text:"朝の投稿"},{id:"d2",text:"配信"}],
+    weekly:[{id:"w1",text:"週1動画公開",days:[6],time:"18:00"}],
+    monthly:[{id:"m1",text:"月次まとめ",day:1}]},
+  auto_systems:[{name:"デモ",schedule:"毎朝8:00",desc:"サンプル行"}]};
+
+(async function(){
+  if(new URLSearchParams(location.search).has("demo")){
+    $("#demo-banner").style.display="block"; render(DEMO); return;}
+  try{
+    const r=await fetch("brief.enc.json?t="+Date.now(),{cache:"no-store"});
+    if(!r.ok) throw new Error("データファイルが見つかりません");
+    ENC=await r.json();
+    const saved=localStorage.getItem("hub-pass");
+    if(saved&&await tryPass(saved)) return;
+    $("#loading").style.display="none";
+    $("#gate").style.display="flex"; $("#gpass").focus();
+  }catch(e){
+    $("#loading").textContent="読み込めませんでした（"+e.message+"）";
+  }
+})();
+</script>
+</body>
+</html>
