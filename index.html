@@ -166,7 +166,8 @@
 </div></div>
 <script>
 const WD = ["日","月","火","水","木","金","土"];
-const now = new Date();
+// 論理日=あさ6時切り替え（夜型対応・旧まいにちクエスト互換）。深夜のチェックは前日分として扱う
+const now = new Date(Date.now() - 6*3600*1000);
 const todayStr = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
 const $ = s => document.querySelector(s);
 $("#bigdate").innerHTML = (now.getMonth()+1)+"/"+now.getDate()+"<small>（"+WD[now.getDay()]+"）</small>";
@@ -204,7 +205,7 @@ function li(scope,id,html,noteHtml,chipsHtml,extraCls,countIt){
   return el;
 }
 function dueChip(due){
-  const d=new Date(due+"T00:00:00"); const t=new Date(); t.setHours(0,0,0,0);
+  const d=new Date(due+"T00:00:00"); const t=new Date(now); t.setHours(0,0,0,0);
   const days=Math.round((d-t)/864e5);
   let cls="due-ok", label="あと"+days+"日";
   if(days<0){cls="due-red";label="⚠️ "+(-days)+"日すぎ";}
