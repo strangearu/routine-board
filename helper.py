@@ -37,27 +37,28 @@ def ws_cmd(name, phrase):
           "if ($LASTEXITCODE -ne 0) { & '" + CLAUDE_EXE + "' " + fl + " }")
     return ["powershell.exe", "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", ps]
 
-_ACT_PS = """Start-Sleep -Milliseconds 1200
+_ACT_TEMPLATE = """Start-Sleep -Milliseconds 1000
 Add-Type -Name W -Namespace U -MemberDefinition '[DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h,int n); [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);'
 $sh = New-Object -ComObject WScript.Shell
 for($i=0; $i -lt 6; $i++){
-  $wt = Get-Process WindowsTerminal -ErrorAction SilentlyContinue |
-        Where-Object {$_.MainWindowHandle -ne 0} |
-        Sort-Object StartTime -Descending | Select-Object -First 1
-  if($wt){
-    [U.W]::ShowWindow($wt.MainWindowHandle, 9) | Out-Null
-    if([U.W]::SetForegroundWindow($wt.MainWindowHandle)){ break }
-    try{ if($sh.AppActivate([int]$wt.Id)){ break } }catch{}
+  $p = Get-Process __PROC__ -ErrorAction SilentlyContinue |
+       Where-Object {$_.MainWindowHandle -ne 0} |
+       Sort-Object StartTime -Descending | Select-Object -First 1
+  if($p){
+    [U.W]::ShowWindow($p.MainWindowHandle, 9) | Out-Null
+    if([U.W]::SetForegroundWindow($p.MainWindowHandle)){ break }
+    try{ if($sh.AppActivate([int]$p.Id)){ break } }catch{}
   }
   Start-Sleep -Milliseconds 700
 }"""
-_ACT_B64 = base64.b64encode(_ACT_PS.encode("utf-16-le")).decode()
 
 
-def activate_console_later():
-    """新しく開いたWindows Terminalを前面化する（ブラウザがフォアグラウンドを握っていると
+def activate_later(proc_name):
+    """指定プロセスのウィンドウを前面化する（ブラウザがフォアグラウンドを握っていると
     背面に開くため。最小化中でも復元する。ベストエフォート・失敗時はタスクバー点滅のまま）"""
-    subprocess.Popen(["powershell.exe", "-WindowStyle", "Hidden", "-EncodedCommand", _ACT_B64],
+    ps = _ACT_TEMPLATE.replace("__PROC__", proc_name)
+    b64 = base64.b64encode(ps.encode("utf-16-le")).decode()
+    subprocess.Popen(["powershell.exe", "-WindowStyle", "Hidden", "-EncodedCommand", b64],
                      creationflags=subprocess.CREATE_NO_WINDOW)
 
 
@@ -113,7 +114,7 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 subprocess.Popen(ws_cmd(name, phrase or ""),
                                  creationflags=subprocess.CREATE_NEW_CONSOLE)
-                activate_console_later()
+                activate_later("WindowsTerminal")
                 return self._send(200, CLOSE_HTML, html=True)  # 窓ナビゲーション起動時に自動で閉じる
             except Exception as e:
                 return self._send(500, "error: " + str(e))
@@ -129,6 +130,8 @@ class Handler(BaseHTTPRequestHandler):
                         creationflags=subprocess.CREATE_NO_WINDOW)
                 else:
                     subprocess.Popen(t["cmd"], creationflags=subprocess.CREATE_NO_WINDOW)
+                if name == "claude":
+                    activate_later("claude")  # 起動済みアプリの前面化がWindowsに拒否されるのを補う
                 return self._send(200, CLOSE_HTML, html=True)
             except Exception as e:
                 return self._send(500, "error: " + str(e))
