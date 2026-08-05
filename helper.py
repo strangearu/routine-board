@@ -46,14 +46,31 @@ TARGETS = {
 }
 
 
+CLOSE_HTML = ("<!doctype html><meta charset='utf-8'><title>OK</title>"
+              "<body style='font-family:sans-serif;font-size:13px'>起動しました。この窓は自動で閉じます"
+              "<script>setTimeout(function(){window.close()},400)</script></body>")
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):  # 静かに
         pass
 
-    def _send(self, code, body):
+    def _cors(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        # ChromeのPrivate Network Access(ローカルネットワーク保護)のプリフライト対策
+        self.send_header("Access-Control-Allow-Private-Network", "true")
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self._cors()
+        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "*")
+        self.end_headers()
+
+    def _send(self, code, body, html=False):
         self.send_response(code)
-        self.send_header("Access-Control-Allow-Origin", "*")  # ボード(https)からのfetch用
-        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self._cors()
+        self.send_header("Content-Type", ("text/html" if html else "text/plain") + "; charset=utf-8")
         self.end_headers()
         self.wfile.write(body.encode("utf-8"))
 
@@ -71,7 +88,7 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 subprocess.Popen(ws_cmd(name, phrase or ""),
                                  creationflags=subprocess.CREATE_NEW_CONSOLE)
-                return self._send(200, "ws " + name)
+                return self._send(200, CLOSE_HTML, html=True)  # 窓ナビゲーション起動時に自動で閉じる
             except Exception as e:
                 return self._send(500, "error: " + str(e))
         if path.startswith("launch/"):
@@ -86,7 +103,7 @@ class Handler(BaseHTTPRequestHandler):
                         creationflags=subprocess.CREATE_NO_WINDOW)
                 else:
                     subprocess.Popen(t["cmd"], creationflags=subprocess.CREATE_NO_WINDOW)
-                return self._send(200, "launched " + name)
+                return self._send(200, CLOSE_HTML, html=True)
             except Exception as e:
                 return self._send(500, "error: " + str(e))
         return self._send(404, "not found")

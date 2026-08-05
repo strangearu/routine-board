@@ -497,8 +497,14 @@ const LINKS=[
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");
   clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2200);}
 function helperCall(url,label){
-  fetch(HELPER+url).then(r=>{if(r.ok)toast(label+" を起動しました");else toast("起動に失敗しました");})
-  .catch(()=>toast("このPCでヘルパーが動いていません"));
+  // fetchはChromeのローカルネットワーク保護で遮断されることがあるため、
+  // クリック起点の小窓ナビゲーションで起動する（helperが自動クローズHTMLを返す）
+  const w=window.open(HELPER+url,"rb-helper","width=260,height=90,left=60,top=60");
+  if(w){toast(label+" を起動します");}
+  else{
+    fetch(HELPER+url).then(r=>{if(r.ok)toast(label+" を起動しました");else toast("起動に失敗しました");})
+    .catch(()=>toast("起動できません（PCでヘルパー未起動の可能性）"));
+  }
 }
 function buildTools(){
   const mk=(x,onclick)=>{const b=document.createElement(onclick?"div":"a"); b.className="tool";
