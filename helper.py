@@ -36,6 +36,19 @@ def ws_cmd(name, phrase):
           "if ($LASTEXITCODE -ne 0) { & '" + CLAUDE_EXE + "' " + fl + " }")
     return ["powershell.exe", "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", ps]
 
+def activate_console_later():
+    """新しく開いたWindows Terminalを前面化する（ブラウザがフォアグラウンドを
+    握っていると新規コンソールが背面に開くため。ベストエフォート・失敗時はタスクバー点滅のまま）"""
+    ps = ("Start-Sleep -Milliseconds 1200; $sh=New-Object -ComObject WScript.Shell; "
+          "for($i=0;$i -lt 6;$i++){ "
+          "$wt=Get-Process WindowsTerminal -ErrorAction SilentlyContinue | "
+          "Sort-Object StartTime -Descending | Select-Object -First 1; "
+          "if($wt){ try{ if($sh.AppActivate([int]$wt.Id)){break} }catch{} }; "
+          "Start-Sleep -Milliseconds 700 }")
+    subprocess.Popen(["powershell.exe", "-WindowStyle", "Hidden", "-Command", ps],
+                     creationflags=subprocess.CREATE_NO_WINDOW)
+
+
 TARGETS = {
     # Claudeデスクトップアプリを起動/前面化（AUMID）
     "claude":   {"cmd": ["explorer.exe", r"shell:appsFolder\Claude_pzs8sxrjxfjjc!Claude"]},
@@ -88,6 +101,7 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 subprocess.Popen(ws_cmd(name, phrase or ""),
                                  creationflags=subprocess.CREATE_NEW_CONSOLE)
+                activate_console_later()
                 return self._send(200, CLOSE_HTML, html=True)  # 窓ナビゲーション起動時に自動で閉じる
             except Exception as e:
                 return self._send(500, "error: " + str(e))
