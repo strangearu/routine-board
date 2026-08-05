@@ -11,6 +11,7 @@
   GET /ws/<name>?phrase=… → Claude窓口（会話継続 claude -c＋依頼文コピー）
   GET /launch/<name>   → TARGETS のコマンドを実行
 """
+import base64
 import subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -36,16 +37,27 @@ def ws_cmd(name, phrase):
           "if ($LASTEXITCODE -ne 0) { & '" + CLAUDE_EXE + "' " + fl + " }")
     return ["powershell.exe", "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", ps]
 
+_ACT_PS = """Start-Sleep -Milliseconds 1200
+Add-Type -Name W -Namespace U -MemberDefinition '[DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h,int n); [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);'
+$sh = New-Object -ComObject WScript.Shell
+for($i=0; $i -lt 6; $i++){
+  $wt = Get-Process WindowsTerminal -ErrorAction SilentlyContinue |
+        Where-Object {$_.MainWindowHandle -ne 0} |
+        Sort-Object StartTime -Descending | Select-Object -First 1
+  if($wt){
+    [U.W]::ShowWindow($wt.MainWindowHandle, 9) | Out-Null
+    if([U.W]::SetForegroundWindow($wt.MainWindowHandle)){ break }
+    try{ if($sh.AppActivate([int]$wt.Id)){ break } }catch{}
+  }
+  Start-Sleep -Milliseconds 700
+}"""
+_ACT_B64 = base64.b64encode(_ACT_PS.encode("utf-16-le")).decode()
+
+
 def activate_console_later():
-    """新しく開いたWindows Terminalを前面化する（ブラウザがフォアグラウンドを
-    握っていると新規コンソールが背面に開くため。ベストエフォート・失敗時はタスクバー点滅のまま）"""
-    ps = ("Start-Sleep -Milliseconds 1200; $sh=New-Object -ComObject WScript.Shell; "
-          "for($i=0;$i -lt 6;$i++){ "
-          "$wt=Get-Process WindowsTerminal -ErrorAction SilentlyContinue | "
-          "Sort-Object StartTime -Descending | Select-Object -First 1; "
-          "if($wt){ try{ if($sh.AppActivate([int]$wt.Id)){break} }catch{} }; "
-          "Start-Sleep -Milliseconds 700 }")
-    subprocess.Popen(["powershell.exe", "-WindowStyle", "Hidden", "-Command", ps],
+    """新しく開いたWindows Terminalを前面化する（ブラウザがフォアグラウンドを握っていると
+    背面に開くため。最小化中でも復元する。ベストエフォート・失敗時はタスクバー点滅のまま）"""
+    subprocess.Popen(["powershell.exe", "-WindowStyle", "Hidden", "-EncodedCommand", _ACT_B64],
                      creationflags=subprocess.CREATE_NO_WINDOW)
 
 
