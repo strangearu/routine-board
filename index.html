@@ -231,7 +231,7 @@
     <div id="tab-tools" style="display:none">
       <div class="sec"><h2>🪟 Claude窓口 <span class="cnt" id="helper-state"></span></h2>
         <div class="toolgrid" id="ws-grid"></div>
-        <p class="hint">タップ→会話が開いたら Ctrl+V → Enter（依頼文はコピー済み）。このPC専用です。</p></div>
+        <p class="hint">🎀FANBOX=Claudeアプリが前面に出るのでチャットに貼ってEnter。🇨🇳🎬=ターミナルが開くので Ctrl+V → Enter（いずれも依頼文コピー済み・このPC専用）。</p></div>
       <div class="sec"><h2>🧰 ツール起動 <span class="cnt">このPC</span></h2><div class="toolgrid" id="app-grid"></div></div>
       <div class="sec"><h2>🔗 リンク</h2><div class="toolgrid" id="link-grid"></div></div>
       <div class="sec"><h2>⚙️ 自動でやっていること <span class="cnt">Claudeにおまかせの分</span></h2>
@@ -477,10 +477,17 @@ function showTab(name){
 
 /* ===== ⚡ツール ===== */
 const HELPER="http://127.0.0.1:8758/";
+function fanboxApp(){
+  // FANBOXはターミナルではなくClaudeアプリのチャットで対応（2026-08-05 本人希望）
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText("Fanbox下書き作って").catch(()=>{});
+  const w=window.open(HELPER+"launch/claude","rb-helper","width=260,height=90,left=60,top=60");
+  if(!w) fetch(HELPER+"launch/claude").catch(()=>{});
+  toast("Claudeアプリのチャットに貼ってEnter（「Fanbox下書き作って」コピー済み）");
+}
 const WS=[
-  {ic:"🇨🇳", lb:"中国語版の窓口", sb:"「中国語版ちょうだい」", url:"ws/zh?phrase="+encodeURIComponent("中国語版ちょうだい")},
-  {ic:"🎬", lb:"動画の窓口", sb:"ショート・カット出し", url:"ws/video?phrase="+encodeURIComponent("ショート切って")},
-  {ic:"🎀", lb:"FANBOXの窓口", sb:"「Fanbox下書き作って」", url:"ws/fanbox?phrase="+encodeURIComponent("Fanbox下書き作って")},
+  {ic:"🎀", lb:"FANBOXの窓口", sb:"Claudeアプリで対応", fn:fanboxApp},
+  {ic:"🇨🇳", lb:"中国語版の窓口", sb:"ターミナルが開きます", url:"ws/zh?phrase="+encodeURIComponent("中国語版ちょうだい")},
+  {ic:"🎬", lb:"動画の窓口", sb:"ターミナルが開きます", url:"ws/video?phrase="+encodeURIComponent("ショート切って")},
 ];
 const APPS=[
   {ic:"🖼️", lb:"レタッチスタジオ", sb:"写真一括レタッチ", url:"launch/retouch"},
@@ -509,7 +516,8 @@ function helperCall(url,label){
 function buildTools(){
   const mk=(x,onclick)=>{const b=document.createElement(onclick?"div":"a"); b.className="tool";
     b.innerHTML='<span class="ic">'+x.ic+'</span><span class="lb">'+x.lb+'</span><span class="sb">'+(x.sb||"ひらく ↗")+'</span>';
-    if(onclick){b.addEventListener("click",()=>helperCall(x.url,x.lb));}
+    if(x.fn){b.addEventListener("click",x.fn);}
+    else if(onclick){b.addEventListener("click",()=>helperCall(x.url,x.lb));}
     else{b.href=x.href;b.target="_blank";b.rel="noopener";}
     return b;};
   WS.forEach(x=>$("#ws-grid").appendChild(mk(x,true)));
