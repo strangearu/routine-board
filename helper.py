@@ -53,6 +53,43 @@ for($i=0; $i -lt 6; $i++){
 }"""
 
 
+_TYPE_TEMPLATE = """Start-Sleep -Milliseconds 800
+Add-Type -Name W -Namespace U -MemberDefinition '[DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h,int n); [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow(); [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);'
+$sh = New-Object -ComObject WScript.Shell
+$ok = $false
+for($i=0; $i -lt 12; $i++){
+  $p = Get-Process claude -ErrorAction SilentlyContinue |
+       Where-Object {$_.MainWindowHandle -ne 0} | Select-Object -First 1
+  if($p){
+    [U.W]::ShowWindow($p.MainWindowHandle, 9) | Out-Null
+    [U.W]::SetForegroundWindow($p.MainWindowHandle) | Out-Null
+    Start-Sleep -Milliseconds 400
+    $fg = [U.W]::GetForegroundWindow(); $fgpid = 0
+    [U.W]::GetWindowThreadProcessId($fg, [ref]$fgpid) | Out-Null
+    if($fgpid -eq $p.Id){ $ok = $true; break }
+    try{ $sh.AppActivate([int]$p.Id) | Out-Null }catch{}
+  }
+  Start-Sleep -Milliseconds 700
+}
+if($ok){
+  Set-Clipboard -Value '__PHRASE__'
+  Start-Sleep -Milliseconds 250
+  $sh.SendKeys('^v')
+  Start-Sleep -Milliseconds 450
+  $sh.SendKeys('{ENTER}')
+}"""
+
+
+def send_to_claude_app(phrase):
+    """Claudeアプリを前面化し、前面確認が取れた場合のみ依頼文を自動貼り付け+送信する。
+    前面確認が取れなければ何も入力しない（他アプリへの誤入力防止）。"""
+    subprocess.Popen(["explorer.exe", r"shell:appsFolder\Claude_pzs8sxrjxfjjc!Claude"])
+    ps = _TYPE_TEMPLATE.replace("__PHRASE__", phrase.replace("'", "''"))
+    b64 = base64.b64encode(ps.encode("utf-16-le")).decode()
+    subprocess.Popen(["powershell.exe", "-WindowStyle", "Hidden", "-EncodedCommand", b64],
+                     creationflags=subprocess.CREATE_NO_WINDOW)
+
+
 def activate_later(proc_name):
     """指定プロセスのウィンドウを前面化する（ブラウザがフォアグラウンドを握っていると
     背面に開くため。最小化中でも復元する。ベストエフォート・失敗時はタスクバー点滅のまま）"""
@@ -106,6 +143,13 @@ class Handler(BaseHTTPRequestHandler):
         path = parsed.path.strip("/")
         if path == "ping":
             return self._send(200, "ok")
+        # /app/fanbox : Claudeアプリのチャットに「Fanbox下書き作って」を自動送信（2026-08-05 本人希望のゼロ操作方式）
+        if path == "app/fanbox":
+            try:
+                send_to_claude_app("Fanbox下書き作って")
+                return self._send(200, CLOSE_HTML, html=True)
+            except Exception as e:
+                return self._send(500, "error: " + str(e))
         if path.startswith("ws/"):
             name = path.split("/", 1)[1]
             if name not in WORKSPACES:

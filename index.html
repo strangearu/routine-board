@@ -231,7 +231,7 @@
     <div id="tab-tools" style="display:none">
       <div class="sec"><h2>🪟 Claude窓口 <span class="cnt" id="helper-state"></span></h2>
         <div class="toolgrid" id="ws-grid"></div>
-        <p class="hint">🎀FANBOX=Claudeアプリが前面に出るのでチャットに貼ってEnter。🇨🇳🎬=ターミナルが開くので Ctrl+V → Enter（いずれも依頼文コピー済み・このPC専用）。</p></div>
+        <p class="hint">🎀FANBOX=タップだけでOK。Claudeアプリが前面に出て依頼が自動送信され、質問形式で始まります。🇨🇳🎬=ターミナルが開くので Ctrl+V → Enter（依頼文コピー済み）。いずれもこのPC専用。</p></div>
       <div class="sec"><h2>🧰 ツール起動 <span class="cnt">このPC</span></h2><div class="toolgrid" id="app-grid"></div></div>
       <div class="sec"><h2>🔗 リンク</h2><div class="toolgrid" id="link-grid"></div></div>
       <div class="sec"><h2>⚙️ 自動でやっていること <span class="cnt">Claudeにおまかせの分</span></h2>
@@ -478,11 +478,10 @@ function showTab(name){
 /* ===== ⚡ツール ===== */
 const HELPER="http://127.0.0.1:8758/";
 function fanboxApp(){
-  // FANBOXはターミナルではなくClaudeアプリのチャットで対応（2026-08-05 本人希望）
-  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText("Fanbox下書き作って").catch(()=>{});
-  const w=window.open(HELPER+"launch/claude","rb-helper","width=260,height=90,left=60,top=60");
-  if(!w) fetch(HELPER+"launch/claude").catch(()=>{});
-  toast("Claudeアプリのチャットに貼ってEnter（「Fanbox下書き作って」コピー済み）");
+  // Claudeアプリのチャットに依頼を自動送信（ゼロ操作・2026-08-05 本人希望）
+  const w=window.open(HELPER+"app/fanbox","rb-helper","width=260,height=90,left=60,top=60");
+  if(!w) fetch(HELPER+"app/fanbox").catch(()=>{});
+  toast("Claudeアプリでチャットを自動開始します…（2〜3秒）");
 }
 const WS=[
   {ic:"🎀", lb:"FANBOXの窓口", sb:"Claudeアプリで対応", fn:fanboxApp},
