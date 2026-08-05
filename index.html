@@ -484,7 +484,8 @@ function fanboxApp(){
   toast("Claudeアプリでチャットを自動開始します…（2〜3秒）");
 }
 const WS=[
-  {ic:"🎀", lb:"FANBOXの窓口", sb:"Claudeアプリで対応", fn:fanboxApp},
+  {ic:"🎀", lb:"FANBOX作成", sb:"文面を生成（AI/テンプレ・スマホOK）", fn:()=>{location.href="fanbox.html";}},
+  {ic:"💬", lb:"FANBOXをClaudeで", sb:"全自動（下書き保存まで・PC）", fn:fanboxApp},
   {ic:"🇨🇳", lb:"中国語版の窓口", sb:"ターミナルが開きます", url:"ws/zh?phrase="+encodeURIComponent("中国語版ちょうだい")},
   {ic:"🎬", lb:"動画の窓口", sb:"ターミナルが開きます", url:"ws/video?phrase="+encodeURIComponent("ショート切って")},
 ];
