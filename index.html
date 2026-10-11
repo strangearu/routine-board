@@ -339,6 +339,8 @@ let DATA=null, calBase=new Date(now.getFullYear(), now.getMonth(), 1);
 
 function render(data){
   DATA=data; progressItems.length=0; checks=loadChecks();
+  // Discord側で✅を押した項目（brief.json の done）をチェック済みに合わせる（足すだけ・外さない）
+  if(data.done){ let add=false; for(const sc of Object.keys(data.done)){ if(!valid.has(sc)) continue; checks[sc]=checks[sc]||{}; for(const id of Object.keys(data.done[sc])){ if(!checks[sc][id]){ checks[sc][id]=1; add=true; } } } if(add) saveChecks(); }
   $("#loading").style.display="none"; $("#app").style.display="block";
   const fresh=$("#fresh"), sb=$("#stale-banner");
   if(data.generated===todayStr){
